@@ -2,205 +2,145 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>位置連動画像アプリ（複数地点）</title>
-
+<title>位置連動画像アプリ</title>
 <style>
 body {
-  font-family: sans-serif;
-  text-align: center;
-  background: #f0f2f5;
+    font-family: sans-serif;
+    text-align: center;
 }
 
-.tabs {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 10px;
+#tabs button {
+    padding: 10px;
+    margin: 5px;
 }
 
-.tab-btn {
-  padding: 10px;
-  margin: 5px;
-  border: none;
-  background: #ccc;
-  cursor: pointer;
+.tab {
+    display: none;
 }
 
-.tab-btn.active {
-  background: #007bff;
-  color: white;
-}
-
-.tab-content {
-  display: none;
-}
-
-.tab-content.active {
-  display: block;
+.active {
+    display: block;
 }
 
 img {
-  max-width: 90%;
-  border-radius: 10px;
+    max-width: 90%;
+    margin-top: 10px;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 5px;
+#savedGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
 }
 
-.grid img {
-  width: 100%;
+.saved-img {
+    width: 100%;
 }
 </style>
 </head>
-
 <body>
 
 <h2>位置連動アプリ</h2>
 
-<div class="tabs">
-  <button class="tab-btn active" onclick="switchTab('main', this)">メイン</button>
-  <button class="tab-btn" onclick="switchTab('grid', this)">保存タブ</button>
+<div id="tabs">
+    <button onclick="showTab('main')">メイン</button>
+    <button onclick="showTab('saved')">保存</button>
 </div>
 
-<!-- メイン -->
-<div id="main" class="tab-content active">
-  <p id="status">位置を確認中...</p>
-  <img id="mainImage" src="" style="display:none;">
+<div id="main" class="tab active">
+    <p>現在地に応じて画像表示</p>
+    <img id="displayImage" src="" alt="">
 </div>
 
-<!-- 保存 -->
-<div id="grid" class="tab-content">
-  <h3>保存画像</h3>
-  <div id="gridContainer" class="grid"></div>
+<div id="saved" class="tab">
+    <h3>保存画像</h3>
+    <div id="savedGrid"></div>
 </div>
 
 <script>
-// ================= 設定 =================
-const locations = [
-  { lat: 36.4663, lng: 140.5883, img: "image1.png" },
-  { lat: 36.4597, lng: 140.5970, img: "image2.PNG" },
-  { lat: 36.4054, lng: 140.5822, img: "image3.PNG" }
-];
+let savedImages = JSON.parse(localStorage.getItem("savedImages") || "[]");
 
-const radius = 100;
+function showTab(tabId){
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    document.getElementById(tabId).classList.add("active");
+    renderSaved();
+}
 
+function renderSaved(){
+    const grid = document.getElementById("savedGrid");
+    grid.innerHTML = "";
+
+    savedImages.forEach((src, index)=>{
+        const img = document.createElement("img");
+        img.src = src;
+        img.className = "saved-img";
+
+        // 長押し削除
+        let pressTimer;
+        img.addEventListener("mousedown", () => {
+            pressTimer = setTimeout(()=>{
+                if(confirm("削除しますか？")){
+                    savedImages.splice(index,1);
+                    localStorage.setItem("savedImages", JSON.stringify(savedImages));
+                    renderSaved();
+                }
+            }, 800);
+        });
+
+        img.addEventListener("mouseup", ()=>clearTimeout(pressTimer));
+        img.addEventListener("mouseleave", ()=>clearTimeout(pressTimer));
+
+        // スマホ対応
+        img.addEventListener("touchstart", () => {
+            pressTimer = setTimeout(()=>{
+                if(confirm("削除しますか？")){
+                    savedImages.splice(index,1);
+                    localStorage.setItem("savedImages", JSON.stringify(savedImages));
+                    renderSaved();
+                }
+            }, 800);
+        });
+
+        img.addEventListener("touchend", ()=>clearTimeout(pressTimer));
+
+        grid.appendChild(img);
+    });
+}
+
+// ダブルタップ保存
 let lastTap = 0;
-let savedImages = [];
-let currentImageSrc = "";
-
-// ================= タブ =================
-function switchTab(id, btn){
-  document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  btn.classList.add('active');
-}
-
-// ================= 距離計算 =================
-function getDistance(lat1, lon1, lat2, lon2){
-  const R = 6371000;
-  const toRad = x => x*Math.PI/180;
-
-  const dLat = toRad(lat2-lat1);
-  const dLon = toRad(lon2-lon1);
-
-  const a = Math.sin(dLat/2)**2 +
-    Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*
-    Math.sin(dLon/2)**2;
-
-  return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
-
-// ================= 位置チェック =================
-function checkLocation(pos){
-  const lat = pos.coords.latitude;
-  const lng = pos.coords.longitude;
-
-  let found = false;
-
-  locations.forEach(loc => {
-    const d = getDistance(lat, lng, loc.lat, loc.lng);
-
-    if(d <= radius){
-      document.getElementById("status").innerText = `到着！(${loc.img})`;
-
-      const img = document.getElementById("mainImage");
-      img.src = loc.img;
-      img.style.display = "block";
-
-      currentImageSrc = loc.img;
-      found = true;
+document.getElementById("displayImage").addEventListener("click", function(){
+    const now = new Date().getTime();
+    if(now - lastTap < 300){
+        if(this.src){
+            savedImages.push(this.src);
+            localStorage.setItem("savedImages", JSON.stringify(savedImages));
+            alert("保存しました");
+        }
     }
-  });
-
-  if(!found){
-    document.getElementById("status").innerText = "対象地点外です";
-  }
-}
-
-// 定期チェック
-setInterval(()=>{
-  navigator.geolocation.getCurrentPosition(checkLocation);
-},5000);
-
-// ================= ダブルタップ =================
-document.getElementById("mainImage").addEventListener("click", function(){
-  const now = new Date().getTime();
-  if(now - lastTap < 300){
-    saveImage();
-  }
-  lastTap = now;
+    lastTap = now;
 });
 
-// ================= 保存 =================
-function saveImage(){
-  if (!currentImageSrc) {
-    alert("まだ画像が表示されていません");
-    return;
-  }
+// 位置取得
+navigator.geolocation.watchPosition(pos=>{
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
 
-  const sourceImg = document.getElementById("mainImage");
+    const img = document.getElementById("displayImage");
 
-  const canvas = document.createElement("canvas");
-  canvas.width = sourceImg.naturalWidth;
-  canvas.height = sourceImg.naturalHeight;
-
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(sourceImg, 0, 0);
-
-  const dataURL = canvas.toDataURL("image/png");
-
-  savedImages.push(dataURL);
-  localStorage.setItem("images", JSON.stringify(savedImages));
-
-  renderImages();
-}
-
-// ================= 表示 =================
-function renderImages(){
-  const grid = document.getElementById("gridContainer");
-  grid.innerHTML = "";
-
-  savedImages.forEach(src=>{
-    const img = document.createElement("img");
-    img.src = src;
-    grid.appendChild(img);
-  });
-}
-
-// ================= 初期ロード =================
-function loadImages(){
-  const data = localStorage.getItem("images");
-  if(data){
-    savedImages = JSON.parse(data);
-    renderImages();
-  }
-}
-
-loadImages();
+    if(Math.abs(lat-36.4663)<0.001 && Math.abs(lon-140.5883)<0.001){
+        img.src = "image1.png";
+    }
+    else if(Math.abs(lat-36.4597)<0.001 && Math.abs(lon-140.5970)<0.001){
+        img.src = "image2.PNG";
+    }
+    else if(Math.abs(lat-36.4054)<0.001 && Math.abs(lon-140.5822)<0.001){
+        img.src = "image3.PNG";
+    }
+    else{
+        img.src = "";
+    }
+});
 </script>
 
 </body>
