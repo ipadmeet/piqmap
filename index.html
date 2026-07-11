@@ -44,7 +44,7 @@ img {
   border-radius: 10px;
 }
 
-/* グリッド表示 */
+/* グリッド */
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -72,7 +72,7 @@ img {
   <img id="mainImage" src="" style="display:none;">
 </div>
 
-<!-- グリッド -->
+<!-- 保存タブ -->
 <div id="grid" class="tab-content">
   <h3>保存画像</h3>
   <div id="gridContainer" class="grid"></div>
@@ -84,6 +84,7 @@ const targetLng = 140.5883;
 const radius = 100;
 
 let lastTap = 0;
+let savedImages = [];
 
 // タブ切替
 function switchTab(id, btn){
@@ -139,13 +140,53 @@ document.getElementById("mainImage").addEventListener("click", function(){
   lastTap = now;
 });
 
-// グリッド保存
+// 画像保存（確実版）
 function saveImage(){
-  const grid = document.getElementById("gridContainer");
-  const img = document.createElement("img");
-  img.src = "image1.png";
-  grid.appendChild(img);
+  const sourceImg = document.getElementById("mainImage");
+
+  if (!sourceImg.src) {
+    alert("先に場所に到達してください");
+    return;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = sourceImg.naturalWidth;
+  canvas.height = sourceImg.naturalHeight;
+
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(sourceImg, 0, 0);
+
+  const dataURL = canvas.toDataURL("image/png");
+
+  savedImages.push(dataURL);
+  localStorage.setItem("images", JSON.stringify(savedImages));
+
+  renderImages();
 }
+
+// 保存画像表示
+function renderImages(){
+  const grid = document.getElementById("gridContainer");
+  grid.innerHTML = "";
+
+  savedImages.forEach(src=>{
+    const img = document.createElement("img");
+    img.src = src;
+    grid.appendChild(img);
+  });
+}
+
+// 初期ロード（ローカルストレージ）
+function loadImages(){
+  const data = localStorage.getItem("images");
+  if(data){
+    savedImages = JSON.parse(data);
+    renderImages();
+  }
+}
+
+// 初期化
+loadImages();
 </script>
 
 </body>
