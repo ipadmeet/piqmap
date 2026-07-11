@@ -48,20 +48,20 @@ img {
     <button onclick="showTab('saved')">保存</button>
 </div>
 
-<!-- メイン画面 -->
+<!-- メイン -->
 <div id="main" class="tab active">
     <p>現在地に応じて画像表示</p>
     <img id="displayImage" src="">
 </div>
 
-<!-- 保存画面 -->
+<!-- 保存 -->
 <div id="saved" class="tab">
     <h3>保存画像</h3>
     <div id="savedGrid"></div>
 </div>
 
 <script>
-// 保存データ読み込み
+// 保存データ
 let savedImages = JSON.parse(localStorage.getItem("savedImages") || "[]");
 
 // タブ切替
@@ -71,7 +71,7 @@ function showTab(tabId){
     renderSaved();
 }
 
-// 保存グリッド描画
+// グリッド描画
 function renderSaved(){
     const grid = document.getElementById("savedGrid");
     grid.innerHTML = "";
@@ -82,9 +82,17 @@ function renderSaved(){
         img.className = "saved-img";
 
         let timer;
+        let isTouch = false; // ← 重要（重複防止）
 
-        // 長押し開始
-        const start = ()=>{
+        const start = (e)=>{
+            if(e.type === "touchstart"){
+                isTouch = true;
+            }
+
+            if(e.type === "mousedown" && isTouch){
+                return; // タッチ時はマウス無視
+            }
+
             timer = setTimeout(()=>{
                 if(confirm("削除しますか？")){
                     savedImages.splice(index,1);
@@ -94,8 +102,10 @@ function renderSaved(){
             }, 700);
         };
 
-        // 長押しキャンセル
-        const cancel = ()=>clearTimeout(timer);
+        const cancel = ()=>{
+            clearTimeout(timer);
+            isTouch = false;
+        };
 
         img.addEventListener("mousedown", start);
         img.addEventListener("mouseup", cancel);
@@ -129,12 +139,11 @@ function handleTap(){
     lastTap = now;
 }
 
-// タップイベント（スマホ＆PC対応）
 const displayImg = document.getElementById("displayImage");
 displayImg.addEventListener("click", handleTap);
 displayImg.addEventListener("touchend", handleTap);
 
-// GPS監視
+// GPS
 navigator.geolocation.watchPosition(pos=>{
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
