@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>位置連動画像アプリ</title>
+<title>PiQMap</title>
 
 <style>
 body {
@@ -15,13 +15,8 @@ body {
     margin: 5px;
 }
 
-.tab {
-    display: none;
-}
-
-.active {
-    display: block;
-}
+.tab { display: none; }
+.active { display: block; }
 
 img {
     max-width: 90%;
@@ -34,137 +29,113 @@ img {
     gap: 10px;
 }
 
-.saved-img {
-    width: 100%;
-}
+.saved-img { width: 100%; }
 </style>
 </head>
 <body>
 
-<h2>位置連動アプリ</h2>
+<h2>PiQMap</h2>
 
 <div id="tabs">
-    <button onclick="showTab('main')">メイン</button>
-    <button onclick="showTab('saved')">保存</button>
+    <button onclick="showTab('main')">Get</button>
+    <button onclick="showTab('saved')">Pandas</button>
 </div>
 
-<!-- メイン -->
 <div id="main" class="tab active">
-    <p>現在地に応じて画像表示</p>
+    <p>パンダをゲット</p>
     <img id="displayImage" src="">
 </div>
 
-<!-- 保存 -->
 <div id="saved" class="tab">
     <h3>保存画像</h3>
     <div id="savedGrid"></div>
 </div>
 
 <script>
-// 保存データ
-let savedImages = JSON.parse(localStorage.getItem("savedImages") || "[]");
+// =====================
+// 座標データ
+// =====================
+const locations = [
+{lat:36.51234455009052, lon:140.61580074786988, img:"image1.PNG"},
+{lat:36.513271792561966, lon:140.61603447231022, img:"image2.PNG"},
+{lat:36.513245085434534, lon:140.61584547996083, img:"image3.PNG"},
+{lat:36.512598930349405, lon:140.61656212773877, img:"image4.PNG"},
+{lat:36.512449776989214, lon:140.61633714719437, img:"image5.PNG"},
+{lat:36.51243138819888, lon:140.61619224447082, img:"image6.PNG"},
+{lat:36.466283341951694, lon:140.58831299567967, img:"image7.PNG"},
+{lat:36.512661233777315, lon:140.6162456079477, img:"image8.PNG"},
+{lat:36.512775648210024, lon:140.61653286045507, img:"image9.PNG"},
+{lat:36.51297821595828, lon:140.6164741403123, img:"image10.PNG"},
+{lat:36.51299410826084, lon:140.6167545628011, img:"image11.PNG"},
+{lat:36.513000451529734, lon:140.61636834128714, img:"image12.PNG"},
+{lat:36.51293569936873, lon:140.61604656249963, img:"image13.PNG"},
+{lat:36.51305673620161, lon:140.61630255150624, img:"image14.PNG"},
+{lat:36.513172084651906, lon:140.61627691007047, img:"image15.PNG"},
+{lat:36.513384169685125, lon:140.61633219909413, img:"image16.PNG"},
+{lat:36.513415918643915, lon:140.61648708075762, img:"image17.PNG"},
+{lat:36.51344073132849, lon:140.61685260992806, img:"image18.PNG"},
+{lat:36.51348837166392, lon:140.61684396565823, img:"image19.PNG"},
+{lat:36.51314000105428, lon:140.6159474312394, img:"image20.PNG"},
+{lat:36.51334743559215, lon:140.61615983332496, img:"image21.PNG"},
+{lat:36.51359655481083, lon:140.61604869270548, img:"image22.PNG"},
+{lat:36.513545937027786, lon:140.61576960624424, img:"image23.PNG"},
+{lat:36.512783688748414, lon:140.61603263905204, img:"image24.PNG"},
+{lat:36.51268840718737, lon:140.61572761977806, img:"image25.PNG"},
+{lat:36.512600073135346, lon:140.61581603110932, img:"image26.PNG"},
+{lat:36.51258000777162, lon:140.61567064423855, img:"image27.PNG"},
+{lat:36.46326713969331, lon:140.58656395160605, img:"image28.PNG"},
+{lat:36.47836996114928, lon:140.57734994952258, img:"image29.PNG"},
+{lat:36.51292421637754, lon:140.61870469761578, img:"image30.PNG"},
+{lat:36.51306198633925, lon:140.61935765325467, img:"image31.PNG"},
+{lat:36.51296022707376, lon:140.61565419159862, img:"image32.PNG"},
+{lat:36.50907720177117, lon:140.61692898718803, img:"image33.PNG"},
+{lat:36.48695879241465, lon:140.60706357178495, img:"image34.PNG"}
+];
 
-// タブ切替
-function showTab(tabId){
-    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-    document.getElementById(tabId).classList.add("active");
-    renderSaved();
+// =====================
+// 距離計算（ハバーサイン公式）
+// =====================
+function getDistance(lat1, lon1, lat2, lon2){
+    const R = 6371000; // 地球半径（m）
+    const toRad = x => x * Math.PI / 180;
+
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+
+    const a =
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
 }
 
-// グリッド描画
-function renderSaved(){
-    const grid = document.getElementById("savedGrid");
-    grid.innerHTML = "";
-
-    savedImages.forEach((src, index)=>{
-        const img = document.createElement("img");
-        img.src = src;
-        img.className = "saved-img";
-
-        let timer;
-        let isTouch = false; // ← 重要（重複防止）
-
-        const start = (e)=>{
-            if(e.type === "touchstart"){
-                isTouch = true;
-            }
-
-            if(e.type === "mousedown" && isTouch){
-                return; // タッチ時はマウス無視
-            }
-
-            timer = setTimeout(()=>{
-                if(confirm("削除しますか？")){
-                    savedImages.splice(index,1);
-                    localStorage.setItem("savedImages", JSON.stringify(savedImages));
-                    renderSaved();
-                }
-            }, 700);
-        };
-
-        const cancel = ()=>{
-            clearTimeout(timer);
-            isTouch = false;
-        };
-
-        img.addEventListener("mousedown", start);
-        img.addEventListener("mouseup", cancel);
-        img.addEventListener("mouseleave", cancel);
-
-        img.addEventListener("touchstart", start);
-        img.addEventListener("touchend", cancel);
-
-        grid.appendChild(img);
-    });
-}
-
-// ダブルタップ保存
-let lastTap = 0;
-
-function handleTap(){
-    const now = Date.now();
-
-    if(now - lastTap < 300){
-        const img = document.getElementById("displayImage");
-
-        if(img.src && img.src !== window.location.href){
-            savedImages.push(img.src);
-            localStorage.setItem("savedImages", JSON.stringify(savedImages));
-
-            renderSaved();
-            alert("保存しました");
-        }
-    }
-
-    lastTap = now;
-}
-
-const displayImg = document.getElementById("displayImage");
-displayImg.addEventListener("click", handleTap);
-displayImg.addEventListener("touchend", handleTap);
-
+// =====================
 // GPS
+// =====================
 navigator.geolocation.watchPosition(pos=>{
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
 
+    let closest = null;
+    let minDist = Infinity;
+
+    locations.forEach(loc=>{
+        const dist = getDistance(lat, lon, loc.lat, loc.lon);
+        if(dist < minDist){
+            minDist = dist;
+            closest = loc;
+        }
+    });
+
     const img = document.getElementById("displayImage");
 
-    if(Math.abs(lat-36.4663)<0.001 && Math.abs(lon-140.5883)<0.001){
-        img.src = "image1.PNG";
-    }
-    else if(Math.abs(lat-36.4597)<0.001 && Math.abs(lon-140.5970)<0.001){
-        img.src = "image2.PNG";
-    }
-    else if(Math.abs(lat-36.4054)<0.001 && Math.abs(lon-140.5822)<0.001){
-        img.src = "image3.PNG";
-    }
-    else{
+    if(minDist <= 10){ // ← ここが10m判定
+        img.src = closest.img;
+    }else{
         img.src = "";
     }
-},
-err=>{
-    alert("位置情報が取得できません");
 });
 </script>
 
