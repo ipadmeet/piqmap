@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>位置連動画像アプリ</title>
+
 <style>
 body {
     font-family: sans-serif;
@@ -47,25 +48,30 @@ img {
     <button onclick="showTab('saved')">保存</button>
 </div>
 
+<!-- メイン画面 -->
 <div id="main" class="tab active">
     <p>現在地に応じて画像表示</p>
-    <img id="displayImage" src="" alt="">
+    <img id="displayImage" src="">
 </div>
 
+<!-- 保存画面 -->
 <div id="saved" class="tab">
     <h3>保存画像</h3>
     <div id="savedGrid"></div>
 </div>
 
 <script>
+// 保存データ読み込み
 let savedImages = JSON.parse(localStorage.getItem("savedImages") || "[]");
 
+// タブ切替
 function showTab(tabId){
     document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
     document.getElementById(tabId).classList.add("active");
     renderSaved();
 }
 
+// 保存グリッド描画
 function renderSaved(){
     const grid = document.getElementById("savedGrid");
     grid.innerHTML = "";
@@ -75,33 +81,28 @@ function renderSaved(){
         img.src = src;
         img.className = "saved-img";
 
-        // 長押し削除
-        let pressTimer;
-        img.addEventListener("mousedown", () => {
-            pressTimer = setTimeout(()=>{
+        let timer;
+
+        // 長押し開始
+        const start = ()=>{
+            timer = setTimeout(()=>{
                 if(confirm("削除しますか？")){
                     savedImages.splice(index,1);
                     localStorage.setItem("savedImages", JSON.stringify(savedImages));
                     renderSaved();
                 }
-            }, 800);
-        });
+            }, 700);
+        };
 
-        img.addEventListener("mouseup", ()=>clearTimeout(pressTimer));
-        img.addEventListener("mouseleave", ()=>clearTimeout(pressTimer));
+        // 長押しキャンセル
+        const cancel = ()=>clearTimeout(timer);
 
-        // スマホ対応
-        img.addEventListener("touchstart", () => {
-            pressTimer = setTimeout(()=>{
-                if(confirm("削除しますか？")){
-                    savedImages.splice(index,1);
-                    localStorage.setItem("savedImages", JSON.stringify(savedImages));
-                    renderSaved();
-                }
-            }, 800);
-        });
+        img.addEventListener("mousedown", start);
+        img.addEventListener("mouseup", cancel);
+        img.addEventListener("mouseleave", cancel);
 
-        img.addEventListener("touchend", ()=>clearTimeout(pressTimer));
+        img.addEventListener("touchstart", start);
+        img.addEventListener("touchend", cancel);
 
         grid.appendChild(img);
     });
@@ -109,19 +110,31 @@ function renderSaved(){
 
 // ダブルタップ保存
 let lastTap = 0;
-document.getElementById("displayImage").addEventListener("click", function(){
-    const now = new Date().getTime();
+
+function handleTap(){
+    const now = Date.now();
+
     if(now - lastTap < 300){
-        if(this.src){
-            savedImages.push(this.src);
+        const img = document.getElementById("displayImage");
+
+        if(img.src && img.src !== window.location.href){
+            savedImages.push(img.src);
             localStorage.setItem("savedImages", JSON.stringify(savedImages));
+
+            renderSaved();
             alert("保存しました");
         }
     }
-    lastTap = now;
-});
 
-// 位置取得
+    lastTap = now;
+}
+
+// タップイベント（スマホ＆PC対応）
+const displayImg = document.getElementById("displayImage");
+displayImg.addEventListener("click", handleTap);
+displayImg.addEventListener("touchend", handleTap);
+
+// GPS監視
 navigator.geolocation.watchPosition(pos=>{
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
@@ -129,7 +142,7 @@ navigator.geolocation.watchPosition(pos=>{
     const img = document.getElementById("displayImage");
 
     if(Math.abs(lat-36.4663)<0.001 && Math.abs(lon-140.5883)<0.001){
-        img.src = "image1.PNG";
+        img.src = "image1.png";
     }
     else if(Math.abs(lat-36.4597)<0.001 && Math.abs(lon-140.5970)<0.001){
         img.src = "image2.PNG";
@@ -140,6 +153,9 @@ navigator.geolocation.watchPosition(pos=>{
     else{
         img.src = "";
     }
+},
+err=>{
+    alert("位置情報が取得できません");
 });
 </script>
 
