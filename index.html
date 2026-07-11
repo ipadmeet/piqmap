@@ -42,18 +42,18 @@ img {
 </div>
 
 <div id="main" class="tab active">
-    <p>パンダをゲット</p>
+    
     <img id="displayImage" src="">
 </div>
 
 <div id="saved" class="tab">
-    <h3>保存画像</h3>
+    
     <div id="savedGrid"></div>
 </div>
 
 <script>
 // =====================
-// 座標データ
+// 座標データ（ここだけ編集すればOK）
 // =====================
 const locations = [
 {lat:36.51234455009052, lon:140.61580074786988, img:"image1.PNG"},
@@ -93,36 +93,91 @@ const locations = [
 ];
 
 // =====================
-// 距離計算（ハバーサイン公式）
+// 保存機能
 // =====================
-function getDistance(lat1, lon1, lat2, lon2){
-    const R = 6371000; // 地球半径（m）
-    const toRad = x => x * Math.PI / 180;
+let savedImages = JSON.parse(localStorage.getItem("savedImages") || "[]");
 
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
+function showTab(tabId){
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    document.getElementById(tabId).classList.add("active");
+    renderSaved();
+}
 
-    const a =
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-        Math.sin(dLon/2) * Math.sin(dLon/2);
+function renderSaved(){
+    const grid = document.getElementById("savedGrid");
+    grid.innerHTML = "";
 
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+    savedImages.forEach((src, index)=>{
+        const img = document.createElement("img");
+        img.src = src;
+        img.className = "saved-img";
+
+        let timer;
+        let isTouch = false;
+
+        const start = (e)=>{
+            if(e.type === "touchstart") isTouch = true;
+            if(e.type === "mousedown" && isTouch) return;
+
+            timer = setTimeout(()=>{
+                if(confirm("削除しますか？")){
+                    savedImages.splice(index,1);
+                    localStorage.setItem("savedImages", JSON.stringify(savedImages));
+                    renderSaved();
+                }
+            },700);
+        };
+
+        const cancel = ()=>{
+            clearTimeout(timer);
+            isTouch = false;
+        };
+
+        img.addEventListener("mousedown", start);
+        img.addEventListener("mouseup", cancel);
+        img.addEventListener("mouseleave", cancel);
+        img.addEventListener("touchstart", start);
+        img.addEventListener("touchend", cancel);
+
+        grid.appendChild(img);
+    });
 }
 
 // =====================
-// GPS
+// ダブルタップ保存
+// =====================
+let lastTap = 0;
+
+function handleTap(){
+    const now = Date.now();
+    if(now - lastTap < 300){
+        const img = document.getElementById("displayImage");
+        if(img.src){
+            savedImages.push(img.src);
+            localStorage.setItem("savedImages", JSON.stringify(savedImages));
+            renderSaved();
+            alert("保存しました");
+        }
+    }
+    lastTap = now;
+}
+
+const displayImg = document.getElementById("displayImage");
+displayImg.addEventListener("click", handleTap);
+displayImg.addEventListener("touchend", handleTap);
+
+// =====================
+// GPS判定（最も近い画像を表示）
 // =====================
 navigator.geolocation.watchPosition(pos=>{
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
 
     let closest = null;
-    let minDist = Infinity;
+    let minDist = 999;
 
     locations.forEach(loc=>{
-        const dist = getDistance(lat, lon, loc.lat, loc.lon);
+        const dist = Math.hypot(lat - loc.lat, lon - loc.lon);
         if(dist < minDist){
             minDist = dist;
             closest = loc;
@@ -131,7 +186,8 @@ navigator.geolocation.watchPosition(pos=>{
 
     const img = document.getElementById("displayImage");
 
-    if(minDist <= 10){ // ← ここが10m判定
+    // 半径判定（約100m）
+    if(minDist < 0.0005){
         img.src = closest.img;
     }else{
         img.src = "";
