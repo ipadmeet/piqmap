@@ -130,6 +130,8 @@ h2 { margin: 0 0 5px 0; font-size: 1.2rem; }
     object-fit: cover;
     aspect-ratio: 1;
     cursor: pointer;
+    -webkit-touch-callout: none; /* iOS/Safariで長押しメニューを禁止 */
+    user-select: none;           /* テキストや画像の選択を禁止 */
 }
 
 /* =====================
@@ -229,7 +231,7 @@ const locations = [
 {lat:36.51314000105428, lon:140.6159474312394, img:"image20.PNG"},
 {lat:36.51334743559215, lon:140.61615983332496, img:"image21.PNG"},
 {lat:36.51359655481083, lon:140.61604869270548, img:"image22.PNG"},
-{lat:36.513545937027786, lon:140.61576960624424, img:"image23.PNG"},
+{lat:36.513545937027786, lon:140.51576960624424, img:"image23.PNG"},
 {lat:36.512783688748414, lon:140.61603263905204, img:"image24.PNG"},
 {lat:36.51268840718737, lon:140.61572761977806, img:"image25.PNG"},
 {lat:36.512600073135346, lon:140.61581603110932, img:"image26.PNG"},
@@ -330,6 +332,11 @@ function renderSaved(){
         img.addEventListener("mouseleave", cancel);
         img.addEventListener("touchstart", start);
         img.addEventListener("touchend", end);
+
+        // ブラウザ標準のコンテクストメニュー（右クリックやスマホの長押しポップアップ）を無効化
+        img.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+        });
 
         grid.appendChild(img);
     });
