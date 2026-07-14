@@ -172,29 +172,16 @@ const locations = [
 // =====================
 // Leaflet.js 地図の初期化
 // =====================
-// 初期位置は仮で水戸・日立付近（ locationsの最初の座標を基準にします ）
 const defaultLat = locations[0].lat;
 const defaultLon = locations[0].lon;
-const map = L.map('map').setView([defaultLat, defaultLon], 16);
+const map = L.map('map', {
+    zoomControl: false // ズームコントロール非表示
+}).setView([defaultLat, defaultLon], 16);
 
 // OpenStreetMapのタイルレイヤーを追加
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
-
-// 現在地を示すピン（赤いサークルマーカー）
-let currentMarker = L.circleMarker([defaultLat, defaultLon], {
-    color: 'red',
-    fillColor: '#f03',
-    fillOpacity: 0.5,
-    radius: 8
-}).addTo(map).bindPopup("現在地");
-
-// ターゲットとなるスポットを青いピンでマッピング
-locations.forEach(loc => {
-    L.marker([loc.lat, loc.lon]).addTo(map)
-        .bindPopup(`<img src="${loc.img}" style="width:100px; height:auto; border-radius:3px;"><br>スポット`);
-});
 
 // =====================
 // 保存機能
@@ -206,7 +193,6 @@ function showTab(tabId){
     document.getElementById(tabId).classList.add("active");
     
     if (tabId === 'main') {
-        // 地図タブに戻った際、表示崩れを防ぐために再描画を行う
         setTimeout(() => { map.invalidateSize(); }, 100);
     } else {
         renderSaved();
@@ -279,22 +265,14 @@ displayImg.addEventListener("touchend", handleTap);
 // =====================
 // GPS判定 ＆ 地図同期
 // =====================
-let firstLocationFound = false;
-
 navigator.geolocation.watchPosition(pos=>{
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
 
-    // 1. 地図上の現在地ピン（赤い点）を動かす
-    currentMarker.setLatLng([lat, lon]);
+    // 現在地に合わせて地図の中心を自動追従
+    map.setView([lat, lon], 16);
 
-    // 2. 初回位置取得時、または現在地が動いた時に地図の中心を現在地に追従
-    if (!firstLocationFound) {
-        map.setView([lat, lon], 16);
-        firstLocationFound = true;
-    }
-
-    // 3. 最も近いスポットを探す
+    // 最も近いスポットを探す
     let closest = null;
     let minDist = 999;
 
@@ -309,8 +287,8 @@ navigator.geolocation.watchPosition(pos=>{
     const img = document.getElementById("displayImage");
     const popup = document.getElementById("imagePopup");
 
-    // 半径判定（約100m）
-    if(minDist < 0.0005){
+    // 半径判定（約20m以内。緯度経度の差 0.00018 が約20mに相当）
+    if(minDist < 0.00018){
         img.src = closest.img;
         popup.style.display = "block"; // 画像ポップアップを表示
     }else{
