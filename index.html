@@ -19,7 +19,7 @@ body {
     overflow: hidden;
 }
 
-/* ヘッダーとタブのレイアウトを地図の上に重ねる */
+/* ヘッダーとタブのレイアウトを地図の上に重ねる（中央） */
 .header-container {
     position: absolute;
     top: 10px;
@@ -57,24 +57,24 @@ h2 { margin: 0 0 5px 0; font-size: 1.2rem; }
     height: 100%;
 }
 
-/* 浮き出る画像表示部分 */
+/* 指定座標到達時に表示される画像表示エリア（左上に変更） */
 .image-overlay {
     position: absolute;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 10px; /* 中央のヘッダーと高さを揃える */
+    left: 10px; /* 左上に配置 */
     z-index: 1000;
-    max-width: 80%;
+    width: 100px; /* ヘッダーの高さにバランスよく収まるサイズ */
     background: rgba(255, 255, 255, 0.95);
-    padding: 10px;
+    padding: 5px;
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     display: none; /* 画像があるときだけ表示 */
 }
 
 .image-overlay img {
-    max-width: 100%;
-    max-height: 200px;
+    width: 100%;
+    height: auto;
+    max-height: 100px; /* 縦長画像の場合もはみ出さないよう制限 */
     border-radius: 5px;
     display: block;
 }
@@ -116,10 +116,10 @@ h2 { margin: 0 0 5px 0; font-size: 1.2rem; }
 <div id="main" class="tab active">
     <div id="map"></div>
     
-    <!-- 条件を満たしたときにポップアップする画像表示エリア -->
+    <!-- 条件を満たしたときに左上にポップアップする画像表示エリア -->
     <div id="imagePopup" class="image-overlay">
         <img id="displayImage" src="">
-        <div style="font-size: 10px; color: #666; margin-top: 5px;">ダブルタップで保存</div>
+        <div style="font-size: 8px; color: #666; margin-top: 3px;">Wタップで保存</div>
     </div>
 </div>
 
@@ -184,11 +184,10 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 // 現在地を示す赤丸（サークルマーカー）を初期化
-// 初期状態では仮の座標を置いておき、位置情報の取得が始まると自動的に実座標へ移動します
 let currentMarker = L.circleMarker([defaultLat, defaultLon], {
     color: '#ff0000',      // 外枠の線の色（赤）
     fillColor: '#ff0000',  // 塗りつぶしの色（赤）
-    fillOpacity: 0.6,      // 不透明度（少し透けさせます）
+    fillOpacity: 0.6,      // 不透明度
     radius: 9,             // 赤丸の大きさ
     weight: 2              // 外枠の太さ
 }).addTo(map);
@@ -303,7 +302,7 @@ navigator.geolocation.watchPosition(pos=>{
     // 半径判定（約20m以内。緯度経度の差 0.00018 が約20mに相当）
     if(minDist < 0.00018){
         img.src = closest.img;
-        popup.style.display = "block"; // 画像ポップアップを表示
+        popup.style.display = "block"; // 画像ポップアップを左上に表示
     }else{
         img.src = "";
         popup.style.display = "none";  // 非表示にする
