@@ -183,6 +183,16 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
+// 現在地を示す赤丸（サークルマーカー）を初期化
+// 初期状態では仮の座標を置いておき、位置情報の取得が始まると自動的に実座標へ移動します
+let currentMarker = L.circleMarker([defaultLat, defaultLon], {
+    color: '#ff0000',      // 外枠の線の色（赤）
+    fillColor: '#ff0000',  // 塗りつぶしの色（赤）
+    fillOpacity: 0.6,      // 不透明度（少し透けさせます）
+    radius: 9,             // 赤丸の大きさ
+    weight: 2              // 外枠の太さ
+}).addTo(map);
+
 // =====================
 // 保存機能
 // =====================
@@ -269,10 +279,13 @@ navigator.geolocation.watchPosition(pos=>{
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
 
-    // 現在地に合わせて地図の中心を自動追従
+    // 1. 赤丸マーカーの位置を現在地に更新
+    currentMarker.setLatLng([lat, lon]);
+
+    // 2. 現在地に合わせて地図の中心を自動追従
     map.setView([lat, lon], 16);
 
-    // 最も近いスポットを探す
+    // 3. 最も近いスポットを探す
     let closest = null;
     let minDist = 999;
 
