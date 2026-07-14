@@ -60,12 +60,13 @@ h2 { margin: 0 0 5px 0; font-size: 1.2rem; }
 }
 
 #map {
-    /* 回転しても隙間ができないよう、画面より大きく配置 */
-    width: 160%;
-    height: 160%;
+    /* 画面の縦横どちらか長い方（max）を基準にして、回転時の対角線分の余白（150%分）を自動確保 */
+    width: 150vmax;
+    height: 150vmax;
     position: absolute;
-    top: -30%;
-    left: -30%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* 常に画面の真ん中に配置 */
     
     transform-origin: center center;
     transition: transform 0.2s ease-out; /* 滑らかに回転させる */
@@ -75,11 +76,11 @@ h2 { margin: 0 0 5px 0; font-size: 1.2rem; }
 .leaflet-control-container {
     transform-origin: center center;
     position: absolute;
-    /* 地図が大きくなった分、内側に押し戻す */
-    width: 62.5% !important;  /* 100 / 160 */
-    height: 62.5% !important;
-    top: 18.75% !important;   /* 30 / 160 */
-    left: 18.75% !important;
+    /* 地図が大きくなった分、内側に押し戻す（100 / 150vmax に対応する補正値） */
+    width: 66.6% !important;
+    height: 66.6% !important;
+    top: 16.7% !important;
+    left: 16.7% !important;
     pointer-events: none;     /* クリックイベントを地図に通す */
 }
 .leaflet-control {
@@ -203,7 +204,7 @@ h2 { margin: 0 0 5px 0; font-size: 1.2rem; }
 
 <script>
 // =====================
-// 座標データ（ここを編集すればOK）
+// 座標データ
 // =====================
 const locations = [
 {lat:36.51234455009052, lon:140.61580074786988, img:"image1.PNG"},
@@ -222,7 +223,7 @@ const locations = [
 {lat:36.51305673620161, lon:140.61630255150624, img:"image14.PNG"},
 {lat:36.513172084651906, lon:140.61627691007047, img:"image15.PNG"},
 {lat:36.513384169685125, lon:140.61633219909413, img:"image16.PNG"},
-{lat:36.513415918643915, lon:140.6164741403123, img:"image17.PNG"}, // 座標を修正
+{lat:36.513415918643915, lon:140.6164741403123, img:"image17.PNG"},
 {lat:36.51344073132849, lon:140.61685260992806, img:"image18.PNG"},
 {lat:36.51348837166392, lon:140.61684396565823, img:"image19.PNG"},
 {lat:36.51314000105428, lon:140.6159474312394, img:"image20.PNG"},
@@ -335,7 +336,7 @@ function renderSaved(){
 }
 
 // =====================
-// モーダル表示制御（バグ修正済み）
+// モーダル表示制御
 // =====================
 function openModal(src) {
     const modal = document.getElementById("imageModal");
@@ -346,7 +347,7 @@ function openModal(src) {
 
 function closeModal() {
     const modal = document.getElementById("imageModal");
-    modal.style.display = "none"; // 修正しました
+    modal.style.display = "none";
 }
 
 // =====================
@@ -383,8 +384,8 @@ function rotateMap(heading) {
     currentHeading = heading;
     const mapEl = document.getElementById('map');
     
-    // 地図を逆方向に回転させて「進行方向が上」にする
-    mapEl.style.transform = `rotate(${-heading}deg)`;
+    // 画面中央に固定する「translate(-50%, -50%)」を維持したまま、地図を逆方向に回転させます
+    mapEl.style.transform = `translate(-50%, -50%) rotate(${-heading}deg)`;
     
     // 地図上のコピーライト表示などが逆さまにならないように逆回転を適用して真っ直ぐ保つ
     const controls = document.querySelectorAll('.leaflet-control-container');
