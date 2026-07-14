@@ -52,9 +52,24 @@ h2 { margin: 0 0 5px 0; font-size: 1.2rem; }
 .tab.active { display: block; }
 
 /* 地図を画面いっぱいに広げる */
+#map-container {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
 #map {
     width: 100%;
     height: 100%;
+    /* 回転させたとき、端が切れないように少し大きめに確保して中心に置く */
+    transform-origin: center center;
+    transition: transform 0.2s ease-out; /* 滑らかに回転させる */
+}
+
+/* 地図上の特定の要素（アトリビューションなど）が回転して逆さまになるのを防ぐための補正 */
+.leaflet-control-container {
+    transform-origin: center center;
 }
 
 /* 指定座標到達時に表示される画像表示エリア（左上に変更） */
@@ -149,7 +164,10 @@ h2 { margin: 0 0 5px 0; font-size: 1.2rem; }
 
 <!-- メインタブ：背景が地図になります -->
 <div id="main" class="tab active">
-    <div id="map"></div>
+    <!-- 地図コンテナをラップして回転用の余白を制御 -->
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
     
     <!-- 条件を満たしたときに左上にポップアップする画像表示エリア -->
     <div id="imagePopup" class="image-overlay">
@@ -341,11 +359,71 @@ displayImg.addEventListener("click", handleTap);
 displayImg.addEventListener("touchend", handleTap);
 
 // =====================
+// 地図の回転制御ロジック
+// =====================
+let currentHeading = 0; // 現在保持している方位角（北が0度、時計回り）
+
+function rotateMap(heading) {
+    if (heading === null || heading === undefined) return;
+    
+    currentHeading = heading;
+    const mapEl = document.getElementById('map');
+    
+    // 地図を逆方向に回転させて「進行方向が上」にする
+    mapEl.style.transform = `rotate(${-heading}deg)`;
+    
+    // 地図上のコピーライト表示などが逆さまにならないように逆回転を適用して真っ直ぐ保つ
+    const controls = document.querySelectorAll('.leaflet-control-container');
+    controls.forEach(ctrl => {
+        ctrl.style.transform = `rotate(${heading}deg)`;
+    });
+}
+
+// デバイスのジャイロ（コンパス）による補正（iOS13+ 対応のパーミッション確認も含む）
+function enableOrientation() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+            .then(permissionState => {
+                if (permissionState === 'granted') {
+                    window.addEventListener('deviceorientation', handleOrientation);
+                }
+            })
+            .catch(console.error);
+    } else {
+        window.addEventListener('deviceorientation', handleOrientation, true);
+    }
+}
+
+function handleOrientation(event) {
+    // webkitCompassHeadingが取得できる場合はコンパスを、それ以外はalpha値を使用
+    let heading = event.webkitCompassHeading;
+    if (heading === undefined) {
+        if (event.absolute) {
+            heading = 360 - event.alpha;
+        } else {
+            return; // 精度が保証できない場合はスキップ
+        }
+    }
+    // GPSの進行方向が取得できていない場合のみ、コンパスの向きを適用
+    if (lastGpsHeading === null) {
+        rotateMap(heading);
+    }
+}
+
+// ユーザーのアクションをトリガーにコンパスの権限をリクエスト（iOS対策）
+document.body.addEventListener('click', function() {
+    enableOrientation();
+}, { once: true });
+
+// =====================
 // GPS判定 ＆ 地図同期
 // =====================
+let lastGpsHeading = null;
+
 navigator.geolocation.watchPosition(pos=>{
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
+    const heading = pos.coords.heading; // GPSから直接取得できる進行方向（0〜360度）
 
     // 1. 赤丸マーカーの位置を現在地に更新
     currentMarker.setLatLng([lat, lon]);
@@ -353,7 +431,15 @@ navigator.geolocation.watchPosition(pos=>{
     // 2. 現在地に合わせて地図の中心を自動追従
     map.setView([lat, lon], 16);
 
-    // 3. 最も近いスポットを探す
+    // 3. 進行方向による地図の回転処理
+    if (heading !== null && !isNaN(heading)) {
+        lastGpsHeading = heading;
+        rotateMap(heading);
+    } else {
+        lastGpsHeading = null; // GPSでの方角が取れない時はコンパス側のセンサー値を反映
+    }
+
+    // 4. 最も近いスポットを探す
     let closest = null;
     let minDist = 999;
 
