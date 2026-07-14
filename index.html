@@ -51,7 +51,9 @@ h2 { margin: 0 0 5px 0; font-size: 1.2rem; }
 }
 .tab.active { display: block; }
 
-/* 地図を画面いっぱいに広げる */
+/* ===================================================
+   【修正】地図の親コンテナと地図本体のサイズ調整
+   =================================================== */
 #map-container {
     width: 100%;
     height: 100%;
@@ -60,16 +62,30 @@ h2 { margin: 0 0 5px 0; font-size: 1.2rem; }
 }
 
 #map {
-    width: 100%;
-    height: 100%;
-    /* 回転させたとき、端が切れないように少し大きめに確保して中心に置く */
+    /* 回転しても隙間ができないよう、画面より大きく配置 */
+    width: 160%;
+    height: 160%;
+    position: absolute;
+    top: -30%;
+    left: -30%;
+    
     transform-origin: center center;
     transition: transform 0.2s ease-out; /* 滑らかに回転させる */
 }
 
-/* 地図上の特定の要素（アトリビューションなど）が回転して逆さまになるのを防ぐための補正 */
+/* 地図上のコピーライト（右下アトリビューション）を画面内に収めるための補正 */
 .leaflet-control-container {
     transform-origin: center center;
+    position: absolute;
+    /* 地図が大きくなった分、内側に押し戻す */
+    width: 62.5% !important;  /* 100 / 160 */
+    height: 62.5% !important;
+    top: 18.75% !important;   /* 30 / 160 */
+    left: 18.75% !important;
+    pointer-events: none;     /* クリックイベントを地図に通す */
+}
+.leaflet-control {
+    pointer-events: auto;     /* ボタン等はクリックできるようにする */
 }
 
 /* 指定座標到達時に表示される画像表示エリア（左上に変更） */
@@ -332,6 +348,7 @@ function openModal(src) {
 
 function closeModal() {
     const modal = document.getElementById("imageModal");
+    const modal="none";
     modal.style.display = "none";
 }
 
@@ -395,22 +412,20 @@ function enableOrientation() {
 }
 
 function handleOrientation(event) {
-    // webkitCompassHeadingが取得できる場合はコンパスを、それ以外はalpha値を使用
     let heading = event.webkitCompassHeading;
     if (heading === undefined) {
         if (event.absolute) {
             heading = 360 - event.alpha;
         } else {
-            return; // 精度が保証できない場合はスキップ
+            return; 
         }
     }
-    // GPSの進行方向が取得できていない場合のみ、コンパスの向きを適用
     if (lastGpsHeading === null) {
         rotateMap(heading);
     }
 }
 
-// ユーザーのアクションをトリガーにコンパスの権限をリクエスト（iOS対策）
+// ユーザーのアクションをトリガーにコンパスの権限をリクエスト
 document.body.addEventListener('click', function() {
     enableOrientation();
 }, { once: true });
@@ -423,7 +438,7 @@ let lastGpsHeading = null;
 navigator.geolocation.watchPosition(pos=>{
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
-    const heading = pos.coords.heading; // GPSから直接取得できる進行方向（0〜360度）
+    const heading = pos.coords.heading; // GPSから直接取得できる進行方向
 
     // 1. 赤丸マーカーの位置を現在地に更新
     currentMarker.setLatLng([lat, lon]);
@@ -436,7 +451,7 @@ navigator.geolocation.watchPosition(pos=>{
         lastGpsHeading = heading;
         rotateMap(heading);
     } else {
-        lastGpsHeading = null; // GPSでの方角が取れない時はコンパス側のセンサー値を反映
+        lastGpsHeading = null;
     }
 
     // 4. 最も近いスポットを探す
@@ -454,18 +469,18 @@ navigator.geolocation.watchPosition(pos=>{
     const img = document.getElementById("displayImage");
     const popup = document.getElementById("imagePopup");
 
-    // 半径判定（約20m以内。緯度経度の差 0.00018 が約20mに相当）
+    // 半径判定（約20m以内）
     if(minDist < 0.00018){
         img.src = closest.img;
-        popup.style.display = "block"; // 画像ポップアップを左上に表示
+        popup.style.display = "block";
     }else{
         img.src = "";
-        popup.style.display = "none";  // 非表示にする
+        popup.style.display = "none";
     }
 }, err => {
     console.error("位置情報の取得に失敗しました", err);
 }, {
-    enableHighAccuracy: true // 高精度GPSを使用
+    enableHighAccuracy: true
 });
 </script>
 
