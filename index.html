@@ -51,9 +51,7 @@ h2 { margin: 0 0 5px 0; font-size: 1.2rem; }
 }
 .tab.active { display: block; }
 
-/* ===================================================
-   【修正】地図の親コンテナと地図本体のサイズ調整
-   =================================================== */
+/* 地図の親コンテナと地図本体のサイズ調整 */
 #map-container {
     width: 100%;
     height: 100%;
@@ -224,7 +222,7 @@ const locations = [
 {lat:36.51305673620161, lon:140.61630255150624, img:"image14.PNG"},
 {lat:36.513172084651906, lon:140.61627691007047, img:"image15.PNG"},
 {lat:36.513384169685125, lon:140.61633219909413, img:"image16.PNG"},
-{lat:36.513415918643915, lon:140.61648708075762, img:"image17.PNG"},
+{lat:36.513415918643915, lon:140.6164741403123, img:"image17.PNG"}, // 座標を修正
 {lat:36.51344073132849, lon:140.61685260992806, img:"image18.PNG"},
 {lat:36.51348837166392, lon:140.61684396565823, img:"image19.PNG"},
 {lat:36.51314000105428, lon:140.6159474312394, img:"image20.PNG"},
@@ -337,7 +335,7 @@ function renderSaved(){
 }
 
 // =====================
-// モーダル表示制御
+// モーダル表示制御（バグ修正済み）
 // =====================
 function openModal(src) {
     const modal = document.getElementById("imageModal");
@@ -348,8 +346,7 @@ function openModal(src) {
 
 function closeModal() {
     const modal = document.getElementById("imageModal");
-    const modal="none";
-    modal.style.display = "none";
+    modal.style.display = "none"; // 修正しました
 }
 
 // =====================
