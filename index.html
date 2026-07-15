@@ -261,7 +261,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 // 現在地を示す赤丸（サークルマーカー）を初期化
 let currentMarker = L.circleMarker([defaultLat, defaultLon], {
-    color: '#ff0000',      // 外枠の線の色（赤）
+    color: '#ff0000',      // 外枠 of 線の色（赤）
     fillColor: '#ff0000',  // 塗りつぶしの色（赤）
     fillOpacity: 0.6,      // 不透明度
     radius: 9,             // 赤丸の大きさ
@@ -316,6 +316,11 @@ function renderSaved(){
         const end = (e)=>{
             clearTimeout(timer);
             
+            // タッチ操作終了時、後続するシミュレートされたマウスイベントの発生を防ぐ（ダブルタップ誤判定防止）
+            if (e.type === "touchend") {
+                e.preventDefault();
+            }
+
             // 長押し判定されていなければ、タップ処理を行う
             if (!isLongPress) {
                 const now = Date.now();
@@ -369,7 +374,11 @@ function closeModal() {
 // =====================
 let lastTap = 0;
 
-function handleTap(){
+function handleTap(e){
+    // タッチデバイスでのゴーストクリック（二重発火）を防止
+    if (e.type === "touchend") {
+        e.preventDefault();
+    }
     const now = Date.now();
     if(now - lastTap < 300){
         const img = document.getElementById("displayImage");
