@@ -296,6 +296,7 @@ function renderSaved(){
         let timer;
         let isTouch = false;
         let isLongPress = false; // 長押し判定フラグ
+        let lastImageTap = 0;    // ダブルタップ検知用のタイムスタンプ
 
         const start = (e)=>{
             if(e.type === "touchstart") isTouch = true;
@@ -314,9 +315,15 @@ function renderSaved(){
 
         const end = (e)=>{
             clearTimeout(timer);
-            // 長押し（削除判定）されていなければ、タップとして拡大表示
+            
+            // 長押し判定されていなければ、タップ処理を行う
             if (!isLongPress) {
-                openModal(src);
+                const now = Date.now();
+                // 300ミリ秒以内の連続タップをダブルタップと判定
+                if (now - lastImageTap < 300) {
+                    openModal(src);
+                }
+                lastImageTap = now;
             }
             isTouch = false;
         };
@@ -326,14 +333,14 @@ function renderSaved(){
             isTouch = false;
         };
 
-        // イベントリスナーの整理（長押しで削除、短いタップで拡大）
+        // イベントリスナーの整理（長押しで削除、ダブルタップで拡大）
         img.addEventListener("mousedown", start);
         img.addEventListener("mouseup", end);
         img.addEventListener("mouseleave", cancel);
         img.addEventListener("touchstart", start);
         img.addEventListener("touchend", end);
 
-        // ブラウザ標準のコンテクストメニュー（右クリックやスマホの長押しポップアップ）を無効化
+        // ブラウザ標準のコンテクストメニューを無効化
         img.addEventListener("contextmenu", (e) => {
             e.preventDefault();
         });
