@@ -181,7 +181,7 @@ h2 { margin: 0 0 5px 0; font-size: 1.2rem; }
         <div id="map"></div>
     </div>
     
-    <!-- スポット接近時のポップアップ画像（シングルタップに変更） -->
+    <!-- スポット接近時のポップアップ画像 -->
     <div id="imagePopup" class="image-overlay">
         <img id="displayImage" src="">
         <div style="font-size: 8px; color: #666; margin-top: 3px;">タップで保存</div>
@@ -296,6 +296,7 @@ function renderSaved(){
             if(e.type === "mousedown" && isTouch) return;
 
             isLongPress = false;
+            // 長押しの判定タイマーを 2000ms (2秒) に延長（修正箇所）
             timer = setTimeout(()=>{
                 isLongPress = true;
                 if(confirm("削除しますか？")){
@@ -303,7 +304,7 @@ function renderSaved(){
                     localStorage.setItem("savedImages", JSON.stringify(savedImages));
                     renderSaved();
                 }
-            },700);
+            }, 2000); 
         };
 
         const end = (e)=>{
@@ -357,17 +358,15 @@ function closeModal() {
 }
 
 // =====================
-// シングルタップで即保存（修正箇所）
+// シングルタップで即保存
 // =====================
 let isPopupTouch = false;
 
 function handleSingleTapSave(e) {
-    // タッチ操作の場合
     if (e.type === "touchend") {
-        e.preventDefault(); // マウスイベントのシミュレートをキャンセル
+        e.preventDefault();
         isPopupTouch = true;
     }
-    // マウス操作の場合で、直前にタッチ操作が行われていたら無視
     if (e.type === "click" && isPopupTouch) {
         isPopupTouch = false;
         return;
@@ -375,7 +374,6 @@ function handleSingleTapSave(e) {
 
     const img = document.getElementById("displayImage");
     if (img.src) {
-        // すでに保存済みか確認（重複保存を防ぐ）
         if (savedImages.includes(img.src)) {
             alert("この画像はすでに保存されています");
             return;
@@ -389,7 +387,6 @@ function handleSingleTapSave(e) {
 }
 
 const displayImg = document.getElementById("displayImage");
-// クリックとタッチエンドの両方にシングルタップ保存の関数を紐付け
 displayImg.addEventListener("click", handleSingleTapSave);
 displayImg.addEventListener("touchend", handleSingleTapSave);
 
