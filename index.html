@@ -9,6 +9,11 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <style>
+  /* 全要素のサイズ計算統一（タップズレ防止） */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
   body {
     font-family: sans-serif;
     margin: 0;
@@ -41,18 +46,31 @@
     white-space: nowrap;
   }
 
+  .header-right {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
   #tabs {
     display: flex;
     gap: 4px;
   }
 
-  #tabs button {
-    padding: 5px 12px;
+  #tabs button, .rotate-toggle-btn {
+    padding: 5px 10px;
     border: 1px solid #ccc;
     background: #fff;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .rotate-toggle-btn.off {
+    background: #ffeded;
+    color: #d9534f;
+    border-color: #ffcccc;
   }
 
   .tab {
@@ -69,7 +87,7 @@
   ---------------------------------- */
   .controls {
     position: absolute;
-    top: 60px; /* 1段目のヘッダーの下に配置 */
+    top: 60px;
     left: 10px;
     right: 10px;
     z-index: 1000;
@@ -86,7 +104,7 @@
     display: flex;
     gap: 6px;
     align-items: center;
-    flex-wrap: wrap; /* スマホ画面等で幅オーバー時に綺麗に折り返す */
+    flex-wrap: wrap;
   }
 
   .text-input { 
@@ -362,12 +380,17 @@
 </head>
 <body>
 
-<!-- 1段目：ヘッダー（横長レイアウト） -->
+<!-- 1段目：ヘッダー -->
 <div class="header-container">
   <h2>PiQMap</h2>
-  <div id="tabs">
-    <button onclick="showTab('main')">Map</button>
-    <button onclick="showTab('saved')">Collection</button>
+  <div class="header-right">
+    <!-- 回転切替ボタン -->
+    <button id="rotateToggleBtn" class="rotate-toggle-btn" onclick="toggleRotation()">回転: ON</button>
+    
+    <div id="tabs">
+      <button onclick="showTab('main')">Map</button>
+      <button onclick="showTab('saved')">Collection</button>
+    </div>
   </div>
 </div>
 
@@ -652,7 +675,23 @@ displayImg.addEventListener("click", handleSingleTapSave);
 displayImg.addEventListener("touchend", handleSingleTapSave);
 
 // 地図の回転制御ロジック
+let isRotationEnabled = true; // 回転制御フラグ
 let currentHeading = 0;
+
+function toggleRotation() {
+  isRotationEnabled = !isRotationEnabled;
+  const btn = document.getElementById("rotateToggleBtn");
+  
+  if (isRotationEnabled) {
+    btn.textContent = "回転: ON";
+    btn.classList.remove("off");
+  } else {
+    btn.textContent = "回転: OFF";
+    btn.classList.add("off");
+    // OFF時に正位置(0度)にリセット
+    rotateMap(0);
+  }
+}
 
 function rotateMap(heading) {
   if (heading === null || heading === undefined) return;
@@ -681,6 +720,8 @@ function enableOrientation() {
 }
 
 function handleOrientation(event) {
+  if (!isRotationEnabled) return; // OFFのときは回転をスキップ
+
   let heading = event.webkitCompassHeading;
   if (heading === undefined) {
     if (event.absolute) {
@@ -709,7 +750,7 @@ navigator.geolocation.watchPosition(pos => {
   currentMarker.setLatLng([lat, lon]);
   map.setView([lat, lon], 16);
 
-  if (heading !== null && !isNaN(heading)) {
+  if (isRotationEnabled && heading !== null && !isNaN(heading)) {
     lastGpsHeading = heading;
     rotateMap(heading);
   } else {
