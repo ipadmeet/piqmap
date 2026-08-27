@@ -23,13 +23,10 @@
   }
 
   /* ----------------------------------
-     1段目：ヘッダー & タブ切り替え（横長に配置）
+     1段目：ヘッダー & タブ切り替え
   ---------------------------------- */
   .header-container {
     position: absolute;
-    top: 10px;
-    left: 10px;
-    right: 10px;
     z-index: 1001;
     background: rgba(255, 255, 255, 0.95);
     padding: 8px 12px;
@@ -83,13 +80,10 @@
   }
 
   /* ----------------------------------
-     2段目：操作コントロールパネル（ヘッダーの下に配置）
+     2段目：操作コントロールパネル
   ---------------------------------- */
   .controls {
     position: absolute;
-    top: 60px;
-    left: 10px;
-    right: 10px;
     z-index: 1000;
     background: rgba(255, 255, 255, 0.95);
     padding: 10px;
@@ -166,6 +160,37 @@
     font-size: 12px;
     cursor: pointer; 
     white-space: nowrap;
+  }
+
+  /* ----------------------------------
+     画面向きに応じたレスポンシブレイアウト
+  ---------------------------------- */
+  /* 【縦画面】上下に2段で配置 */
+  @media (orientation: portrait) {
+    .header-container {
+      top: 10px;
+      left: 10px;
+      right: 10px;
+    }
+    .controls {
+      top: 60px;
+      left: 10px;
+      right: 10px;
+    }
+  }
+
+  /* 【横画面】左右に2段（2列）で並べる */
+  @media (orientation: landscape) {
+    .header-container {
+      top: 10px;
+      left: 10px;
+      width: 320px;
+    }
+    .controls {
+      top: 10px;
+      left: 340px;
+      right: 10px;
+    }
   }
 
   /* ----------------------------------
@@ -484,6 +509,13 @@ document.getElementById('modal-textarea').addEventListener('paste', function(e) 
   e.stopPropagation();
 });
 
+// 画面回転時・リサイズ時に地図サイズを自動調整
+window.addEventListener('resize', () => {
+  if (map) {
+    setTimeout(() => { map.invalidateSize(); }, 200);
+  }
+});
+
 // ユーザーID初期化
 let myUserId = localStorage.getItem('map_user_id');
 if (!myUserId) {
@@ -675,7 +707,7 @@ displayImg.addEventListener("click", handleSingleTapSave);
 displayImg.addEventListener("touchend", handleSingleTapSave);
 
 // 地図の回転制御ロジック
-let isRotationEnabled = true; // 回転制御フラグ
+let isRotationEnabled = true;
 let currentHeading = 0;
 
 function toggleRotation() {
@@ -688,7 +720,6 @@ function toggleRotation() {
   } else {
     btn.textContent = "回転: OFF";
     btn.classList.add("off");
-    // OFF時に正位置(0度)にリセット
     rotateMap(0);
   }
 }
@@ -720,7 +751,7 @@ function enableOrientation() {
 }
 
 function handleOrientation(event) {
-  if (!isRotationEnabled) return; // OFFのときは回転をスキップ
+  if (!isRotationEnabled) return;
 
   let heading = event.webkitCompassHeading;
   if (heading === undefined) {
