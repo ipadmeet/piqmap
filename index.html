@@ -920,6 +920,13 @@ function linkify(text) {
 
 map.on('click', async function(e) {
   if (!addMode) return;
+
+  // 回転機能がONの場合は追加処理をブロックしてポップアップを表示
+  if (isRotationEnabled) {
+    alert("ピン止めは回転OFFにしてください");
+    return;
+  }
+
   addMode = false;
 
   const text = document.getElementById("text").value;
@@ -947,7 +954,7 @@ map.on('click', async function(e) {
   descBtn.style.backgroundColor = "#f8f9fa";
   updateFileLabel();
 });
-
+  
 // Firestoreリアルタイム同期
 db.collection("markers").onSnapshot(snapshot => {
   snapshot.docChanges().forEach(change => {
