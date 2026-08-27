@@ -413,7 +413,7 @@
   <h2>QuestMap</h2>
   <div class="header-right">
     <!-- 回転切替ボタン -->
-    <button id="rotateToggleBtn" class="rotate-toggle-btn" onclick="toggleRotation()">回転: ON</button>
+    <button id="rotateToggleBtn" class="rotate-toggle-btn" onclick="toggleRotation()">回転:ON</button>
     
     <div id="tabs">
       <button onclick="showTab('main')">Map</button>
@@ -923,7 +923,7 @@ map.on('click', async function(e) {
 
   // 回転機能がONの場合は追加処理をブロックしてポップアップを表示
   if (isRotationEnabled) {
-    alert("ピン止めは回転OFFにしてください");
+    alert("ピン止めは「回転:OFF」にしてください");
     return;
   }
 
