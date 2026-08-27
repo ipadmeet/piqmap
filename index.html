@@ -18,29 +18,36 @@
   }
 
   /* ----------------------------------
-     ヘッダー & タブ切り替え
+     1段目：ヘッダー & タブ切り替え（横長に配置）
   ---------------------------------- */
   .header-container {
     position: absolute;
     top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
+    left: 10px;
+    right: 10px;
+    z-index: 1001;
     background: rgba(255, 255, 255, 0.95);
-    padding: 8px 16px;
+    padding: 8px 12px;
     border-radius: 10px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .header-container h2 {
-    margin: 0 0 5px 0;
+    margin: 0;
     font-size: 1.1rem;
+    white-space: nowrap;
+  }
+
+  #tabs {
+    display: flex;
+    gap: 4px;
   }
 
   #tabs button {
     padding: 5px 12px;
-    margin: 0 2px;
     border: 1px solid #ccc;
     background: #fff;
     border-radius: 5px;
@@ -58,12 +65,13 @@
   }
 
   /* ----------------------------------
-     1つ目のコード：コントロールパネル
+     2段目：操作コントロールパネル（ヘッダーの下に配置）
   ---------------------------------- */
   .controls {
     position: absolute;
-    top: 75px; /* ヘッダーと重ならないよう移動 */
+    top: 60px; /* 1段目のヘッダーの下に配置 */
     left: 10px;
+    right: 10px;
     z-index: 1000;
     background: rgba(255, 255, 255, 0.95);
     padding: 10px;
@@ -76,18 +84,22 @@
 
   .row {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
+    flex-wrap: wrap; /* スマホ画面等で幅オーバー時に綺麗に折り返す */
   }
 
-  .text-input { width: 150px; }
+  .text-input { 
+    flex: 1;
+    min-width: 100px; 
+  }
 
   .desc-btn, .file-custom-btn {
     border: 1px solid #ccc;
     background-color: #f8f9fa;
-    padding: 4px 12px;
+    padding: 4px 8px;
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 12px;
     cursor: pointer;
     white-space: nowrap;
     display: inline-block;
@@ -113,7 +125,8 @@
   }
 
   .add-btn {
-    width: 140px;
+    padding: 4px 8px;
+    font-size: 12px;
     white-space: nowrap;
   }
 
@@ -122,14 +135,23 @@
     gap: 4px;
     align-items: center;
     border-left: 1px solid #ccc;
-    padding-left: 8px;
+    padding-left: 6px;
+    flex: 1;
   }
 
-  .zip-input { width: 110px; }
-  .zip-btn { width: 50px; cursor: pointer; }
+  .zip-input { 
+    width: 100%;
+    min-width: 80px; 
+  }
+  .zip-btn { 
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer; 
+    white-space: nowrap;
+  }
 
   /* ----------------------------------
-     2つ目のコード：回転対応マップ構造
+     回転対応マップ構造
   ---------------------------------- */
   #map-container {
     width: 100%;
@@ -161,7 +183,7 @@
   .leaflet-control { pointer-events: auto; }
 
   /* ----------------------------------
-     2つ目のコード：接近ポップアップ画像
+     接近ポップアップ画像
   ---------------------------------- */
   .image-overlay {
     position: absolute;
@@ -340,7 +362,7 @@
 </head>
 <body>
 
-<!-- ヘッダー (タブ切り替え) -->
+<!-- 1段目：ヘッダー（横長レイアウト） -->
 <div class="header-container">
   <h2>PiQMap</h2>
   <div id="tabs">
@@ -351,7 +373,7 @@
 
 <!-- メインタブ -->
 <div id="main" class="tab active">
-  <!-- コントロールパネル -->
+  <!-- 2段目：操作コントロールパネル -->
   <div class="controls">
     <div class="row">
       <input type="text" id="text" class="text-input" placeholder="名称">
@@ -418,9 +440,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-// ==========================================
-// 💡 セキュリティ・ガード処理 (コード1より)
-// ==========================================
+// セキュリティ・ガード処理
 document.addEventListener('contextmenu', e => {
   if (e.target && e.target.id === 'modal-textarea') return;
   e.preventDefault();
@@ -448,9 +468,7 @@ if (!myUserId) {
   localStorage.setItem('map_user_id', myUserId);
 }
 
-// ==========================================
-// 🔥 Firebase設定 (コード1より)
-// ==========================================
+// Firebase設定
 const firebaseConfig = {
   apiKey: "AIzaSyAguJ8B6ILRpYUXLc2H2hKYRAsKktfKerI",
   authDomain: "kunimap-3c5f6.firebaseapp.com",
@@ -463,9 +481,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// ==========================================
-// 📍 座標データ (コード2より)
-// ==========================================
+// 座標データ
 const locations = [
   {lat:36.51234455009052, lon:140.61580074786988, img:"image1.PNG"},
   {lat:36.513271792561966, lon:140.61603447231022, img:"image2.PNG"},
@@ -503,9 +519,7 @@ const locations = [
   {lat:36.48695879241465, lon:140.60706357178495, img:"image34.PNG"}
 ];
 
-// ==========================================
-// 🗺 地図の初期化
-// ==========================================
+// 地図の初期化
 const defaultLat = locations[0].lat;
 const defaultLon = locations[0].lon;
 const map = L.map('map', { zoomControl: false }).setView([defaultLat, defaultLon], 16);
@@ -516,7 +530,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 L.control.zoom({ position: 'topright' }).addTo(map);
 
-// GPS現在地を示すサークルマーカー (コード2より)
 let currentMarker = L.circleMarker([defaultLat, defaultLon], {
   color: '#ff0000',
   fillColor: '#ff0000',
@@ -525,9 +538,7 @@ let currentMarker = L.circleMarker([defaultLat, defaultLon], {
   weight: 2
 }).addTo(map);
 
-// ==========================================
-// 🔄 タブ制御 ＆ コレクション機能 (コード2より)
-// ==========================================
+// タブ制御 ＆ コレクション機能
 let savedImages = JSON.parse(localStorage.getItem("savedImages") || "[]");
 
 function showTab(tabId){
@@ -640,9 +651,7 @@ const displayImg = document.getElementById("displayImage");
 displayImg.addEventListener("click", handleSingleTapSave);
 displayImg.addEventListener("touchend", handleSingleTapSave);
 
-// ==========================================
-// 🧭 地図の回転制御ロジック (コード2より)
-// ==========================================
+// 地図の回転制御ロジック
 let currentHeading = 0;
 
 function rotateMap(heading) {
@@ -689,9 +698,7 @@ document.body.addEventListener('click', function() {
   enableOrientation();
 }, { once: true });
 
-// ==========================================
-// 📡 GPS判定 ＆ 地図同期 (コード2より)
-// ==========================================
+// GPS判定 ＆ 地図同期
 let lastGpsHeading = null;
 
 navigator.geolocation.watchPosition(pos => {
@@ -736,9 +743,7 @@ navigator.geolocation.watchPosition(pos => {
   enableHighAccuracy: true
 });
 
-// ==========================================
-// 📌 マーカー投稿・共有機能 (コード1より)
-// ==========================================
+// マーカー投稿・共有機能
 let addMode = false;
 let tempDescription = ""; 
 const markers = {};
