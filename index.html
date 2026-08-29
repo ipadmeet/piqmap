@@ -106,7 +106,7 @@
   .text-input { 
     flex: 1;
     min-width: 100px; 
-    font-size: 16px;
+    font-size: 16px; /* 追加 */
   }
 
   .desc-btn, .file-custom-btn {
@@ -157,7 +157,7 @@
  .zip-input { 
     width: 100%;
     min-width: 80px; 
-    font-size: 16px;
+    font-size: 16px; /* 追加 */
   }
   .zip-btn { 
     padding: 4px 8px;
@@ -231,6 +231,32 @@
   .leaflet-control { pointer-events: auto; }
 
   /* ----------------------------------
+     接近ポップアップ画像
+  ---------------------------------- */
+  .image-overlay {
+    position: fixed;
+    bottom: 50px;
+    right: 10px;
+    z-index: 2000;
+    width: 100px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 5px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    display: none;
+    text-align: center;
+  }
+
+  .image-overlay img {
+    width: 100%;
+    height: auto;
+    max-height: 100px;
+    border-radius: 5px;
+    display: block;
+    cursor: pointer;
+  }
+
+  /* ----------------------------------
      マップ関連ポップアップ＆説明モーダル
   ---------------------------------- */
   .custom-popup img {
@@ -238,8 +264,6 @@
     display: block;
     margin-top: 5px;
     margin-bottom: 5px;
-    cursor: pointer;
-    border-radius: 4px;
   }
 
   .popup-desc {
@@ -427,6 +451,12 @@
   <div id="map-container">
     <div id="map"></div>
   </div>
+  
+  <!-- スポット接近時のポップアップ画像 -->
+  <div id="imagePopup" class="image-overlay">
+    <img id="displayImage" src="">
+    <div style="font-size: 8px; color: #666; margin-top: 3px;">タップで保存</div>
+  </div>
 
   <!-- 下部説明 -->
   <div class="bottom-instructions">
@@ -511,9 +541,47 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// 座標データ
+const locations = [
+  {lat:36.51234455009052, lon:140.61580074786988, img:"image1.PNG"},
+  {lat:36.513271792561966, lon:140.61603447231022, img:"image2.PNG"},
+  {lat:36.513245085434534, lon:140.61584547996083, img:"image3.PNG"},
+  {lat:36.512598930349405, lon:140.61656212773877, img:"image4.PNG"},
+  {lat:36.512449776989214, lon:140.61633714719437, img:"image5.PNG"},
+  {lat:36.51243138819888, lon:140.61619224447082, img:"image6.PNG"},
+  {lat:36.466283341951694, lon:140.58831299567967, img:"image7.PNG"},
+  {lat:36.512661233777315, lon:140.6162456079477, img:"image8.PNG"},
+  {lat:36.512775648210024, lon:140.61653286045507, img:"image9.PNG"},
+  {lat:36.51297821595828, lon:140.6164741403123, img:"image10.PNG"},
+  {lat:36.51299410826084, lon:140.6167545628011, img:"image11.PNG"},
+  {lat:36.513000451529734, lon:140.61636834128714, img:"image12.PNG"},
+  {lat:36.51293569936873, lon:140.61604656249963, img:"image13.PNG"},
+  {lat:36.51305673620161, lon:140.61630255150624, img:"image14.PNG"},
+  {lat:36.513172084651906, lon:140.61627691007047, img:"image15.PNG"},
+  {lat:36.513384169685125, lon:140.61633219909413, img:"image16.PNG"},
+  {lat:36.513415918643915, lon:140.6164741403123, img:"image17.PNG"},
+  {lat:36.51344073132849, lon:140.61685260992806, img:"image18.PNG"},
+  {lat:36.51348837166392, lon:140.61684396565823, img:"image19.PNG"},
+  {lat:36.51314000105428, lon:140.6159474312394, img:"image20.PNG"},
+  {lat:36.51334743559215, lon:140.61615983332496, img:"image21.PNG"},
+  {lat:36.51359655481083, lon:140.61604869270548, img:"image22.PNG"},
+  {lat:36.513545937027786, lon:140.51576960624424, img:"image23.PNG"},
+  {lat:36.512783688748414, lon:140.61603263905204, img:"image24.PNG"},
+  {lat:36.51268840718737, lon:140.61572761977806, img:"image25.PNG"},
+  {lat:36.512600073135346, lon:140.61581603110932, img:"image26.PNG"},
+  {lat:36.51258000777162, lon:140.61567064423855, img:"image27.PNG"},
+  {lat:36.46326713969331, lon:140.58656395160605, img:"image28.PNG"},
+  {lat:36.47836996114928, lon:140.57734994952258, img:"image29.PNG"},
+  {lat:36.51292421637754, lon:140.61870469761578, img:"image30.PNG"},
+  {lat:36.51306198633925, lon:140.61935765325467, img:"image31.PNG"},
+  {lat:36.51296022707376, lon:140.51565419159862, img:"image32.PNG"},
+  {lat:36.50907720177117, lon:140.61692898718803, img:"image33.PNG"},
+  {lat:36.48695879241465, lon:140.60706357178495, img:"image34.PNG"}
+];
+
 // 地図の初期化
-const defaultLat = 36.51234455009052;
-const defaultLon = 140.61580074786988;
+const defaultLat = locations[0].lat;
+const defaultLon = locations[0].lon;
 const map = L.map('map', { zoomControl: false }).setView([defaultLat, defaultLon], 16);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -618,17 +686,34 @@ function closeModal() {
   document.getElementById("imageModal").style.display = "none";
 }
 
-// マーカー上の画像タップでCollectionに保存する関数
-function saveToCollection(imgSrc) {
-  if (savedImages.includes(imgSrc)) {
-    alert("この画像はすでにCollectionに保存されています");
+// 接近画像のタップ保存
+let isPopupTouch = false;
+function handleSingleTapSave(e) {
+  if (e.type === "touchend") {
+    e.preventDefault();
+    isPopupTouch = true;
+  }
+  if (e.type === "click" && isPopupTouch) {
+    isPopupTouch = false;
     return;
   }
-  savedImages.push(imgSrc);
-  localStorage.setItem("savedImages", JSON.stringify(savedImages));
-  renderSaved();
-  alert("Collectionに保存しました！");
+
+  const img = document.getElementById("displayImage");
+  if (img.src) {
+    if (savedImages.includes(img.src)) {
+      alert("この画像はすでに保存されています");
+      return;
+    }
+    savedImages.push(img.src);
+    localStorage.setItem("savedImages", JSON.stringify(savedImages));
+    renderSaved();
+    alert("Collectionに保存しました！");
+  }
 }
+
+const displayImg = document.getElementById("displayImage");
+displayImg.addEventListener("click", handleSingleTapSave);
+displayImg.addEventListener("touchend", handleSingleTapSave);
 
 // 地図の回転制御ロジック
 let isRotationEnabled = true;
@@ -710,6 +795,28 @@ navigator.geolocation.watchPosition(pos => {
     rotateMap(heading);
   } else {
     lastGpsHeading = null;
+  }
+
+  let closest = null;
+  let minDist = 999;
+
+  locations.forEach(loc => {
+    const dist = Math.hypot(lat - loc.lat, lon - loc.lon);
+    if(dist < minDist){
+      minDist = dist;
+      closest = loc;
+    }
+  });
+
+  const img = document.getElementById("displayImage");
+  const popup = document.getElementById("imagePopup");
+
+  if(minDist < 0.00018){
+    img.src = closest.img;
+    popup.style.display = "block";
+  } else {
+    img.src = "";
+    popup.style.display = "none";
   }
 }, err => {
   console.error("位置情報の取得に失敗しました", err);
@@ -860,8 +967,7 @@ db.collection("markers").onSnapshot(snapshot => {
       let html = `<div class="custom-popup" id="popup-${id}"><strong>${data.text}</strong>`;
       
       if (data.image) { 
-        html += `<img src="${data.image}" class="custom-popup-img" title="タップしてCollectionに保存" onclick="saveToCollection('${data.image}')">`; 
-        html += `<div style="font-size: 10px; color: #888; text-align: center; margin-bottom: 4px;">(タップで保存)</div>`;
+        html += `<img src="${data.image}">`; 
       }
       
       if (data.description) {
@@ -921,3 +1027,4 @@ document.addEventListener('click', function(e) {
 </script>
 </body>
 </html>
+
